@@ -11,15 +11,37 @@ function getTelegramConfig() {
   return { botToken, chatId };
 }
 
-async function sendToTelegram({ name, message, ip }) {
+function normalizePayload(payloadOrName, maybeMessage, maybeIp) {
+  if (payloadOrName && typeof payloadOrName === "object" && !Array.isArray(payloadOrName)) {
+    return {
+      name: payloadOrName.name,
+      message: payloadOrName.message,
+      ip: payloadOrName.ip
+    };
+  }
+
+  // Backward compatibility: sendToTelegram(name, message, ip)
+  return {
+    name: payloadOrName,
+    message: maybeMessage,
+    ip: maybeIp
+  };
+}
+
+async function sendToTelegram(payloadOrName, maybeMessage, maybeIp) {
+  const { name, message, ip } = normalizePayload(payloadOrName, maybeMessage, maybeIp);
   const { botToken, chatId } = getTelegramConfig();
   const timeIso = new Date().toISOString();
+
+  if (!name || !message) {
+    throw new Error("Telegram payload is invalid: name/message is missing");
+  }
 
   const text = [
     "🎁 Новое поздравление!",
     `От: ${name}`,
     `Текст: ${message}`,
-    `IP: ${ip}`,
+    `IP: ${ip || "unknown"}`,
     `Time: ${timeIso}`
   ].join("\n");
 
